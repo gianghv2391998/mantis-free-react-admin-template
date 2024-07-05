@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import axios from 'axios';
 
 // material-ui
 import Button from '@mui/material/Button';
@@ -32,6 +33,9 @@ import EyeInvisibleOutlined from '@ant-design/icons/EyeInvisibleOutlined';
 export default function AuthRegister() {
   const [level, setLevel] = useState();
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(''); // Khai báo state error và setError
+  const navigate = useNavigate();
+
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
@@ -48,6 +52,32 @@ export default function AuthRegister() {
   useEffect(() => {
     changePassword('');
   }, []);
+
+  const handleRegister = async (firstname, lastname, company, email, password) => {
+    try {
+      const formData = new FormData();
+      formData.append('first_name', firstname);
+      formData.append('last_name', lastname);
+      formData.append('company', company);
+      formData.append('email', email);
+      formData.append('password', password);
+
+      const response = await axios.post('http://127.0.0.1:5000/register', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.status === 201) {
+        navigate('/login');
+      } else {
+        setError(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error during registration:', error);
+      setError('An error occurred during registration.');
+    }
+  };
 
   return (
     <>
@@ -66,6 +96,10 @@ export default function AuthRegister() {
           email: Yup.string().email('Must be a valid email').max(255).required('Email is required'),
           password: Yup.string().max(255).required('Password is required')
         })}
+        onSubmit={(values, { setSubmitting }) => {
+          handleRegister(values.firstname, values.lastname, values.company, values.email, values.password);
+          setSubmitting(false);
+        }}
       >
         {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
           <form noValidate onSubmit={handleSubmit}>
@@ -75,7 +109,7 @@ export default function AuthRegister() {
                   <InputLabel htmlFor="firstname-signup">First Name*</InputLabel>
                   <OutlinedInput
                     id="firstname-login"
-                    type="firstname"
+                    type="text"
                     value={values.firstname}
                     name="firstname"
                     onBlur={handleBlur}
@@ -98,7 +132,7 @@ export default function AuthRegister() {
                     fullWidth
                     error={Boolean(touched.lastname && errors.lastname)}
                     id="lastname-signup"
-                    type="lastname"
+                    type="text"
                     value={values.lastname}
                     name="lastname"
                     onBlur={handleBlur}
@@ -221,6 +255,11 @@ export default function AuthRegister() {
               {errors.submit && (
                 <Grid item xs={12}>
                   <FormHelperText error>{errors.submit}</FormHelperText>
+                </Grid>
+              )}
+              {error && (
+                <Grid item xs={12}>
+                  <FormHelperText error>{error}</FormHelperText>
                 </Grid>
               )}
               <Grid item xs={12}>
